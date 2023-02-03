@@ -1,7 +1,9 @@
 package com.xgen.interview;
 
-import java.lang.reflect.Array;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 
 
 /**
@@ -9,31 +11,34 @@ import java.util.*;
  * Please write a replacement
  */
 public class ShoppingCart implements IShoppingCart {
-    HashMap<String, Integer> contents = new HashMap<>();
-    Pricer pricer;
+    private final HashMap<ShoppingItem, ReceiptItem> contents = new HashMap<>();
+    private final Pricer pricer;
+    private ReceiptFormat formatter;
 
-    public ShoppingCart(Pricer pricer) {
+    public ShoppingCart(Pricer pricer, ReceiptFormat formatter) {
         this.pricer = pricer;
+        this.formatter = formatter;
     }
 
     public void addItem(String itemType, int number) {
-        if (!contents.containsKey(itemType)) {
-            contents.put(itemType, number);
-        } else {
-            int existing = contents.get(itemType);
-            contents.put(itemType, existing + number);
-        }
+        if(number <= 0)
+            return;
+        ShoppingItem item = pricer.findItem(itemType);
+        int currentAmount = 0;
+        if(contents.containsKey(item))
+            currentAmount = contents.get(item).amount;
+        contents.put(item, new ReceiptItem(item, contents.size() + 1, currentAmount + number, pricer.getPrice(itemType)));
+
     }
 
     public void printReceipt() {
-        Object[] keys = contents.keySet().toArray();
-
-        for (int i = 0; i < Array.getLength(keys) ; i++) {
-            Integer price = pricer.getPrice((String)keys[i]) * contents.get(keys[i]);
-            Float priceFloat = new Float(new Float(price) / 100);
-            String priceString = String.format("€%.2f", priceFloat);
-
-            System.out.println(keys[i] + " - " + contents.get(keys[i]) + " - " + priceString);
-        }
+        List<ReceiptItem> receipt = new ArrayList<>(contents.values());
+        receipt.sort(Comparator.comparingInt(x -> x.order));
+        formatter.printReceipt(receipt);
     }
+
+    public void setFormatter(ReceiptFormat formatter) {
+        this.formatter = formatter;
+    }
+
 }
